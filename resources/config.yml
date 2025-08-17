@@ -1,0 +1,61 @@
+#      ___       __           __    __       __    _          
+#     / _ | ____/ /____ ___ _/ /__ / /  ___ / /__ (_)_ ____ __
+#    / __ |/ __/ __(_-</ _ `/  '_// _ \(_-</  '_// / // / // /
+#   /_/ |_/_/  \__/___/\_,_/_/\_\/_//_/___/_/\_\/_/\_, /\_, / 
+#                                                 /___//___/ 
+#
+# Config version - DO NOT CHANGE!
+config-version: 1.3
+
+# Settings...
+# Default interval = 300 seconds ( 5 minutes )...
+settings:
+  interval: 300
+  countdown:
+    "60": # - Your messages arrive exactly at the times you specify...
+      message: "§l§2ServerCleaner » Server cleaning in §f1 §2minute..." # - Custom messages...
+      type: "tip" # - Message type - tip, toast, message...
+    "30":
+      message: "§l§2ServerCleaner » Server cleanup in §f30 §2seconds..."
+      type: "toast"
+    "20":
+      message: "§l§2ServerCleaner » Server cleanup in §f20 §2seconds..."
+      type: "message"
+    "10":
+      message: "§l§2ServerCleaner » Server cleanup in §f10 §2seconds..."
+      type: "message"
+    "5":
+      message: "§l§2ServerCleaner » Server cleanup in §f5 §2seconds..."
+      type: "message"
+    "4":
+      message: "§l§2ServerCleaner » Server cleanup in §f4 §2seconds..."
+      type: "message"
+    "3":
+      message: "§l§2ServerCleaner » Server cleanup in §f3 §2seconds..."
+      type: "message"
+    "2":
+      message: "§l§2ServerCleaner » Server cleanup in §f2 §2seconds..."
+      type: "message"
+    "1":
+      message: "§l§2ServerCleaner » Server cleanup in §f1 §2second..."
+      type: "message"
+  completed:
+    message: "§l§2ServerCleaner » §fServer cleanup §2complete..."
+    type: "message"
+
+# Clear options...
+clear-options:
+  clear-mobs: true # Clearing mobs...
+  clear-items: true # Clearing items...
+
+  mob-exceptions: # Mobs that cannot be deleted...
+    - "minecraft:horse"
+    - "minecraft:iron_golem"
+  item-exceptions: # Items that cannot be deleted...
+    - "minecraft:diamond"
+    - "minecraft:nether_star"
+
+# Messages...
+messages:
+  no_permission: "§l§2ServerCleaner » You do not have permission to use this command..."
+  manual_start: "§l§2ServerCleaner » §fManual server cleanup §2completed..."
