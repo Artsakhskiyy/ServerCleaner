@@ -4,7 +4,7 @@ version: 1.3
 api: 5.32.1
 load: POSTWORLD
 author: Artsakhskiyy
-description: Plugin for automatic and manual server cleaning
+description: Plugin for automatic and manual server cleaning...
 commands:
   serverclear:
     description: Runs a manual server cleanup...
