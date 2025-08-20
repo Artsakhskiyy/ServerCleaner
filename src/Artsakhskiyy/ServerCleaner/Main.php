@@ -8,7 +8,7 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\world\World;
 use pocketmine\entity\Entity;
-use pocketmine\item\Item;
+use pocketmine\entity\object\ItemEntity; // ✅ правильная сущность предмета
 use pocketmine\player\Player;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
@@ -115,7 +115,8 @@ class Main extends PluginBase {
     private function clearEntities(World $world): void {
         foreach ($world->getEntities() as $entity) {
             if (!$entity instanceof Player) {
-                if (!in_array($entity::getNetworkTypeId(), $this->mobExceptions, true)) {
+                // ✅ строгая проверка, приведение к строке
+                if (!in_array((string)$entity::getNetworkTypeId(), $this->mobExceptions, true)) {
                     $entity->flagForDespawn();
                 }
             }
@@ -124,8 +125,10 @@ class Main extends PluginBase {
 
     private function clearItems(World $world): void {
         foreach ($world->getEntities() as $entity) {
-            if ($entity instanceof Item) {
-                if (!in_array($entity->getId(), $this->itemExceptions, true)) {
+            if ($entity instanceof ItemEntity) { // ✅ заменил Item → ItemEntity
+                $item = $entity->getItem();
+                // ✅ строгая проверка, приведение к строке
+                if (!in_array((string)$item->getId(), $this->itemExceptions, true)) {
                     $entity->flagForDespawn();
                 }
             }
