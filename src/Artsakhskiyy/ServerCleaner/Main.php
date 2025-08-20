@@ -5,149 +5,80 @@ declare(strict_types=1);
 namespace Artsakhskiyy\ServerCleaner;
 
 use pocketmine\plugin\PluginBase;
-use pocketmine\scheduler\ClosureTask;
-use pocketmine\world\World;
 use pocketmine\entity\Entity;
-use pocketmine\entity\object\ItemEntity; // ✅ правильная сущность предмета
+use pocketmine\scheduler\Task;
 use pocketmine\player\Player;
-use pocketmine\command\Command;
-use pocketmine\command\CommandSender;
+use pocketmine\Server;
+use pocketmine\utils\Config;
+use pocketmine\item\Item;
 
 class Main extends PluginBase {
 
-    private array $countdownConfig;
-    private array $completedConfig;
-    private int $interval;
+    /** @var Config */
+    private $config;
+    /** @var array */
+    private $mobExceptions = [];
+    /** @var array */
+    private $itemExceptions = [];
+    /** @var int */
+    private $time;
 
-    private bool $clearMobs = true;
-    private bool $clearItems = true;
-    private array $mobExceptions = [];
-    private array $itemExceptions = [];
-
-    private bool $countdownRunning = false;
-
-    public function onEnable(): void {
+    public function onEnable() : void {
         $this->saveDefaultConfig();
+        $this->config = $this->getConfig();
+        $this->mobExceptions = $this->config->get("mob-exceptions", []);
+        $this->itemExceptions = $this->config->get("item-exceptions", []);
+        $this->time = (int) $this->config->get("clear-time", 300);
 
-        $config = $this->getConfig();
-        $this->interval = (int)$config->getNested("settings.interval", 300);
-        $this->countdownConfig = $config->getNested("settings.countdown", []);
-        $this->completedConfig = $config->getNested("settings.completed", []);
-        $this->clearMobs = (bool)$config->getNested("clear-options.clear-mobs", true);
-        $this->clearItems = (bool)$config->getNested("clear-options.clear-items", true);
-        $this->mobExceptions = $config->getNested("clear-options.mob-exceptions", []);
-        $this->itemExceptions = $config->getNested("clear-options.item-exceptions", []);
+        $this->getScheduler()->scheduleRepeatingTask(new class($this) extends Task {
+            private Main $plugin;
+            private int $time;
 
-        $this->getLogger()->info("ServerCleaner включен!");
-
-        $this->startCountdown();
-    }
-
-    private function startCountdown(): void {
-        if ($this->countdownRunning) return;
-        $this->countdownRunning = true;
-
-        $times = array_map('intval', array_keys($this->countdownConfig));
-        rsort($times);
-        $totalTime = $times[0] ?? 60;
-
-        $currentTick = 0;
-        $taskHandler = null;
-
-        $task = new ClosureTask(function() use (&$currentTick, $totalTime, $times, &$taskHandler): void {
-            $remaining = $totalTime - $currentTick;
-
-            if (in_array($remaining, $times)) {
-                $config = $this->countdownConfig[(string)$remaining] ?? [];
-                $message = $config['message'] ?? "";
-                $type = $config['type'] ?? "tip";
-                $this->broadcast($message, $type);
+            public function __construct(Main $plugin){
+                $this->plugin = $plugin;
+                $this->time = $plugin->time;
             }
 
-            if ($remaining <= 0) {
-                if ($taskHandler !== null) {
-                    $taskHandler->cancel();
+            public function onRun() : void {
+                $this->time--;
+                if($this->time === 60 || $this->time === 30 || $this->time === 10 || $this->time <= 5 && $this->time > 0){
+                    Server::getInstance()->broadcastMessage("§e[Cleaner] Очистка через §c{$this->time} §eсекунд(ы)!");
                 }
-
-                $this->clearWorlds();
-                $this->broadcast($this->completedConfig['message'] ?? "", $this->completedConfig['type'] ?? "tip");
-
-                $this->countdownRunning = false;
-
-                $this->getScheduler()->scheduleDelayedTask(new ClosureTask(function(): void {
-                    $this->startCountdown();
-                }), $this->interval * 20);
-
-                return;
+                if($this->time <= 0){
+                    $this->plugin->clearEntities();
+                    $this->time = $this->plugin->time;
+                }
             }
-
-            $currentTick++;
-        });
-
-        $taskHandler = $this->getScheduler()->scheduleRepeatingTask($task, 20);
+        }, 20);
     }
 
-    private function broadcast(string $message, string $type = "tip"): void {
-        if ($message === "") return;
+    public function clearEntities() : void {
+        $removed = 0;
 
-        foreach ($this->getServer()->getOnlinePlayers() as $player) {
-            switch ($type) {
-                case "tip":
-                    $player->sendActionBarMessage($message);
-                    break;
-                case "message":
-                    $player->sendMessage($message);
-                    break;
-                case "toast":
-                    $player->sendToastNotification($message, "");
-                    break;
-            }
-        }
-    }
-
-    private function clearWorlds(): void {
-        foreach ($this->getServer()->getWorldManager()->getWorlds() as $world) {
-            if ($this->clearMobs) $this->clearEntities($world);
-            if ($this->clearItems) $this->clearItems($world);
-        }
-    }
-
-    private function clearEntities(World $world): void {
-        foreach ($world->getEntities() as $entity) {
-            if (!$entity instanceof Player) {
-                // ✅ строгая проверка, приведение к строке
-                if (!in_array((string)$entity::getNetworkTypeId(), $this->mobExceptions, true)) {
+        foreach(Server::getInstance()->getWorldManager()->getWorlds() as $world){
+            foreach($world->getEntities() as $entity){
+                if($entity instanceof Player){
+                    continue;
+                }
+                if(!in_array((string)$entity::getNetworkTypeId(), $this->mobExceptions, true)){
                     $entity->flagForDespawn();
+                    $removed++;
+                }
+            }
+
+            foreach($world->getDrops() as $item){
+                if(!in_array((string)$item->getId(), $this->itemExceptions, true)){
+                    $item->flagForDespawn();
+                    $removed++;
                 }
             }
         }
+
+        Server::getInstance()->broadcastMessage("§e[Cleaner] §aОчищено объектов: §c{$removed}");
     }
 
-    private function clearItems(World $world): void {
-        foreach ($world->getEntities() as $entity) {
-            if ($entity instanceof ItemEntity) { // ✅ заменил Item → ItemEntity
-                $item = $entity->getItem();
-                // ✅ строгая проверка, приведение к строке
-                if (!in_array((string)$item->getId(), $this->itemExceptions, true)) {
-                    $entity->flagForDespawn();
-                }
-            }
-        }
-    }
-
-    public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool {
-        if (strtolower($command->getName()) === "serverclear") {
-            if (!$sender->hasPermission("servercleaner.use")) {
-                $sender->sendMessage($this->getConfig()->getNested("messages.no_permission") ?? "");
-                return false;
-            }
-
-            $this->clearWorlds();
-            $this->broadcast($this->completedConfig['message'] ?? "", $this->completedConfig['type'] ?? "tip");
-            $sender->sendMessage($this->getConfig()->getNested("messages.manual_start") ?? "");
-
-            return true;
-        }
-        return false;
+    // пример: замена старого addXp()
+    public function addExperience(Player $player, int $amount) : void {
+        $player->getXpManager()->addXp($amount);
     }
 }
