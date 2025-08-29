@@ -1,12 +1,13 @@
 name: ServerCleaner
 main: Artsakhskiyy\ServerCleaner\Main
 version: 1.0.0
-api: 5.0.0
+api: 5.32.1
+load: POSTWORLD
 author: Artsakhskiyy
 description: Plugin for automatic and manual server cleaning...
 commands:
   serverclear:
-    description: Runs a manual server cleanup...
+    description: Cleaning server...
     usage: "/serverclear"
     permission: servercleaner.use
 permissions:
