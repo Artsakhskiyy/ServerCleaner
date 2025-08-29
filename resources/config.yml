@@ -5,7 +5,7 @@
 #                                                 /___//___/ 
 #
 # Config version - DO NOT CHANGE!
-config-version: 1.0.0
+config-version: 1.3
 
 # Settings...
 # Default interval = 300 seconds ( 5 minutes )...
@@ -42,6 +42,9 @@ settings:
   completed:
     message: "§l§2ServerCleaner » §fServer cleanup §2complete..."
     type: "message"
+  
+  toast-title: "§l§2ServerCleaner »" # Header for toast notification...
+
 
 # Clear options...
 clear-options:
@@ -58,4 +61,3 @@ clear-options:
 # Messages...
 messages:
   no_permission: "§l§2ServerCleaner » You do not have permission to use this command..."
-  manual_start: "§l§2ServerCleaner » §fManual server cleanup §2completed..."
